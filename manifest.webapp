@@ -1,0 +1,40 @@
+{
+  "version": "1.2.0",
+  "name": "मीशो लाइट",
+  "subtitle": "गांव के लिए किफ़ायती बाज़ार",
+  "description": "कीपैड फ़ोन के लिए हल्का ई-कॉमर्स ऐप — साड़ी, कुर्ता, बच्चों का सामान और घर की चीज़ें। डिलीवरी पर नकद भुगतान। हिंदी, भोजपुरी और தமிழ் में उपलब्ध।",
+  "launch_path": "/index.html",
+  "type": "web",
+  "fullscreen": "true",
+  "orientation": ["portrait-primary"],
+  "cursor": false,
+  "display": "standalone",
+  "theme_color": "#F43397",
+  "background_color": "#f5f2f4",
+  "icons": {
+    "56": "/icons/icon-56.png",
+    "112": "/icons/icon-112.png",
+    "128": "/icons/icon-128.png"
+  },
+  "developer": {
+    "name": "मीशो लाइट टीम",
+    "url": "https://example.com"
+  },
+  "locales": {
+    "hi": {
+      "name": "मीशो लाइट",
+      "subtitle": "गांव के लिए किफ़ायती बाज़ार",
+      "description": "कीपैड फ़ोन के लिए हल्का ई-कॉमर्स ऐप। डिलीवरी पर नकद भुगतान।"
+    },
+    "ta": {
+      "name": "மீஷோ லைட்",
+      "subtitle": "கிராமங்களுக்கான மலிவு சந்தை",
+      "description": "கீப்பேட் போன்களுக்கான இலகுவான இ-காமர்ஸ் ஆப். டெலிவரியில் பணம் செலுத்துங்கள்."
+    }
+  },
+  "default_locale": "hi",
+  "permissions": {},
+  "chrome": {
+    "navigation": false
+  }
+}
