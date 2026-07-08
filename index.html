@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>मीशो लाइट</title>
+<style>
+  /* ============================================================
+     MEESHO LITE v2 — QVGA (240x320) KEYPAD-PHONE PROTOTYPE
+     Trilingual (हिंदी / भोजपुरी / தமிழ்) · '*' cycles language
+     Pure HTML/CSS/JS. No frameworks.
+     ============================================================ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --meesho-pink: #F43397;
+    --meesho-dark: #B01E6E;
+    --cod-green:   #0A8A3C;
+    --ink:         #222222;
+    --muted:       #6b6b6b;
+    --paper:       #ffffff;
+    --bg:          #f5f2f4;
+    --line:        #e4dde1;
+  }
+
+  html, body {
+    height: 100%;
+    background: #1c1420;
+    font-family: "Noto Sans", "Noto Sans Devanagari", "Noto Sans Tamil",
+                 "Segoe UI", Arial, sans-serif;
+    color: var(--ink);
+  }
+
+  /* --- Desktop stage: centers the simulated handset --- */
+  .stage {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .stage-title {
+    color: #d9c9d4;
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+
+  /* --- Handset bezel --- */
+  .handset {
+    background: #2a2130;
+    border-radius: 18px;
+    padding: 14px 12px 10px;
+    box-shadow: 0 18px 50px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.08);
+  }
+
+  /* --- THE HARD 240x320 SCREEN BOUND --- */
+  #screen {
+    width: 240px;
+    height: 320px;
+    background: var(--bg);
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    border: 2px solid #000;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+  }
+  #screen::-webkit-scrollbar { display: none; }
+
+  /* --- Softkey hint bar (feature-phone style) --- */
+  .softkeys {
+    width: 240px;
+    margin: 6px auto 0;
+    display: flex;
+    justify-content: space-between;
+    color: #cbb8c6;
+    font-size: 9px;
+    gap: 4px;
+  }
+
+  /* --- Language toast (absolute: never reflows the layout) --- */
+  #langToast {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+    background: rgba(34,34,34,.92);
+    color: #fff;
+    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 12px;
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease;
+    white-space: nowrap;
+  }
+  #langToast.show { opacity: 1; }
+
+  /* ============ FOCUS ENGINE VISUALS ============ */
+  .nav-item { cursor: pointer; }
+  .nav-item:focus { outline: none; }
+  .focused {
+    outline: 3px solid var(--meesho-pink) !important;
+    outline-offset: -3px;
+    background-color: #fde8f3 !important;
+  }
+  input.focused { background-color: #fff0f8 !important; }
+
+  /* ============ SHARED LAYOUT ============ */
+  .view[hidden] { display: none; }
+
+  .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--meesho-pink);
+    color: #fff;
+    padding: 6px 8px;
+    border-bottom: 2px solid var(--meesho-dark);
+  }
+  .brand {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: .5px;
+  }
+  .search-indicator {
+    margin-top: 5px;
+    background: #fff;
+    color: var(--muted);
+    font-size: 11px;
+    padding: 4px 6px;
+    border-radius: 3px;
+  }
+
+  .section-label {
+    font-size: 10px;
+    letter-spacing: .5px;
+    color: var(--muted);
+    padding: 6px 8px 2px;
+    font-weight: 700;
+  }
+
+  /* ============ VIEW A: FEED ============ */
+  .cat-ribbon {
+    display: flex;
+    gap: 4px;
+    padding: 4px 6px;
+    overflow-x: auto;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+    scrollbar-width: none;
+  }
+  .cat-ribbon::-webkit-scrollbar { display: none; }
+  .cat-chip {
+    flex: 0 0 auto;
+    font-size: 11px;
+    padding: 4px 9px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #faf7f9;
+    white-space: nowrap;
+  }
+  .cat-chip.active {
+    background: var(--meesho-dark);
+    color: #fff;
+    border-color: var(--meesho-dark);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 6px;
+  }
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .card-img {
+    width: 100%;
+    height: 78px;
+    display: block;
+    object-fit: cover;
+    background: #efe9ed;
+  }
+  .card-body { padding: 4px 5px 6px; }
+  .card-title {
+    font-size: 11px;
+    line-height: 1.25;
+    height: 27px;
+    overflow: hidden;
+  }
+  .card-price {
+    font-size: 13px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+  .cod-badge {
+    display: inline-block;
+    margin-top: 2px;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--cod-green);
+    letter-spacing: .2px;
+  }
+
+  /* ============ VIEW B: PDP ============ */
+  .pdp-back, .chk-back {
+    display: inline-block;
+    margin: 6px 8px 0;
+    font-size: 11px;
+    color: var(--meesho-dark);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 3px 8px;
+  }
+  .pdp-imgframe {
+    width: 180px;
+    height: 180px;
+    margin: 8px auto 6px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .pdp-imgframe img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    background: #efe9ed;
+  }
+  .pdp-info { padding: 0 10px; text-align: center; }
+  .pdp-title { font-size: 13px; font-weight: 600; }
+  .pdp-price { font-size: 16px; font-weight: 800; margin: 2px 0; }
+  .pdp-price .mrp {
+    font-size: 10px;
+    color: var(--muted);
+    text-decoration: line-through;
+    font-weight: 400;
+    margin-left: 4px;
+  }
+  .pdp-rating { font-size: 10px; color: var(--cod-green); font-weight: 700; }
+
+  .size-row {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin: 8px 0;
+  }
+  .size-box {
+    min-width: 34px;
+    height: 30px;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 15px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .size-box.selected {
+    background: var(--ink);
+    color: #fff;
+    border-color: var(--ink);
+  }
+
+  .buy-btn {
+    display: block;
+    width: 210px;
+    margin: 6px auto 12px;
+    padding: 10px 0;
+    text-align: center;
+    background: var(--meesho-pink);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: .3px;
+    border: none;
+    border-radius: 4px;
+    border-bottom: 3px solid var(--meesho-dark);
+    font-family: inherit;
+  }
+  .buy-btn small { display: block; font-weight: 400; font-size: 10px; }
+
+  /* ============ VIEW C: CHECKOUT + TRACKER ============ */
+  .chk-form { padding: 6px 10px 10px; }
+  .field { margin-bottom: 8px; }
+  .field label {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 2px;
+    letter-spacing: .2px;
+  }
+  .field input {
+    width: 100%;
+    padding: 6px;
+    font-size: 12px;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: inherit;
+  }
+  .err {
+    font-size: 9px;
+    color: #c62828;
+    margin-top: 2px;
+    display: none;
+  }
+  .err.show { display: block; }
+
+  .place-btn {
+    width: 100%;
+    padding: 9px 0;
+    background: var(--cod-green);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    border: none;
+    border-radius: 4px;
+    border-bottom: 3px solid #06612a;
+    letter-spacing: .3px;
+    font-family: inherit;
+  }
+
+  /* Vertical order pipeline
+     Strict flex-column layout: every block owns its own height, so
+     taller Devanagari/Tamil line boxes can only push siblings apart,
+     never overlap them, inside the 240px-wide screen. */
+  .tracker {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 8px 12px 10px;
+  }
+  .order-id {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    text-align: center;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--muted);
+    padding: 6px 4px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    min-height: 0;
+  }
+  .order-id b { color: var(--ink); }
+  .order-id .oid-row { display: block; width: 100%; }
+  .pipe { list-style: none; }
+  .pipe li {
+    position: relative;
+    padding: 0 0 16px 26px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #9a9a9a;
+    overflow-wrap: break-word;
+  }
+  .pipe li:last-child { padding-bottom: 2px; }
+  .pipe li::before {
+    content: "";
+    position: absolute;
+    left: 4px; top: 2px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: #d7cfd4;
+    border: 2px solid #d7cfd4;
+  }
+  .pipe li::after {
+    content: "";
+    position: absolute;
+    left: 9px; top: 18px;
+    width: 2px;
+    height: calc(100% - 18px);
+    background: #d7cfd4;
+  }
+  .pipe li:last-child::after { display: none; }
+  .pipe li.done { color: var(--ink); font-weight: 600; }
+  .pipe li.done::before {
+    background: var(--cod-green);
+    border-color: var(--cod-green);
+  }
+  .pipe li.done::after { background: var(--cod-green); }
+  .pipe li .sub {
+    display: block;
+    font-size: 9px;
+    font-weight: 400;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+  /* Tracker action buttons: their own flex column so the two nodes
+     stack with fixed gaps and can never overlap the pipeline above. */
+  .trk-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .home-btn {
+    display: block;
+    width: 100%;
+    padding: 8px 4px;
+    background: var(--meesho-pink);
+    border: 1px solid var(--meesho-dark);
+    border-bottom-width: 3px;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    border-radius: 4px;
+    text-align: center;
+    line-height: 1.35;
+  }
+  .shop-again {
+    display: block;
+    width: 100%;
+    padding: 8px 4px;
+    background: var(--paper);
+    border: 1px solid var(--meesho-dark);
+    color: var(--meesho-dark);
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 4px;
+    text-align: center;
+    line-height: 1.35;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="stage-title" id="stageTitle"></div>
+
+  <div class="handset">
+    <div id="screen">
+
+      <!-- ================= VIEW A: MARKETPLACE FEED ================= -->
+      <section id="view-feed" class="view">
+        <header class="app-header">
+          <div class="brand" id="brandFeed"></div>
+          <div class="search-indicator nav-item" id="searchBox" data-action="search"></div>
+        </header>
+
+        <div class="section-label" id="catLabel"></div>
+        <nav class="cat-ribbon" id="catRibbon"></nav>
+
+        <div class="section-label" id="gridLabel"></div>
+        <main class="grid" id="grid"></main>
+      </section>
+
+      <!-- ================= VIEW B: PRODUCT DETAIL ================= -->
+      <section id="view-pdp" class="view" hidden>
+        <header class="app-header">
+          <div class="brand" id="brandPdp"></div>
+        </header>
+
+        <span class="pdp-back nav-item" id="backFeedBtn" data-action="back-feed"></span>
+
+        <div class="pdp-imgframe">
+          <img id="pdpImg" alt="" width="180" height="180">
+        </div>
+
+        <div class="pdp-info">
+          <div class="pdp-title" id="pdpTitle"></div>
+          <div class="pdp-price"><span id="pdpPrice"></span><span class="mrp" id="pdpMrp"></span></div>
+          <div class="pdp-rating" id="pdpRating"></div>
+        </div>
+
+        <div class="section-label" style="text-align:center" id="sizeLabel"></div>
+        <div class="size-row" id="sizeRow">
+          <span class="size-box nav-item" data-action="size" data-size="38">38</span>
+          <span class="size-box nav-item selected" data-action="size" data-size="40">40</span>
+          <span class="size-box nav-item" data-action="size" data-size="42">42</span>
+          <span class="size-box nav-item" data-action="size" data-size="44">44</span>
+        </div>
+
+        <button class="buy-btn nav-item" id="buyBtn" data-action="buy"></button>
+      </section>
+
+      <!-- ================= VIEW C: CHECKOUT + TRACKER ================= -->
+      <section id="view-checkout" class="view" hidden>
+        <header class="app-header">
+          <div class="brand" id="chkHeading"></div>
+        </header>
+
+        <!-- C1: the order form -->
+        <div id="chkForm">
+          <span class="chk-back nav-item" id="backPdpBtn" data-action="back-pdp"></span>
+          <div class="chk-form">
+            <div class="field">
+              <label for="fName" id="lblName"></label>
+              <input class="nav-item" data-action="input" id="fName" type="text" maxlength="40" autocomplete="off">
+              <div class="err" id="eName"></div>
+            </div>
+            <div class="field">
+              <label for="fVillage" id="lblVillage"></label>
+              <input class="nav-item" data-action="input" id="fVillage" type="text" maxlength="60" autocomplete="off">
+              <div class="err" id="eVillage"></div>
+            </div>
+            <div class="field">
+              <label for="fLandmark" id="lblLandmark"></label>
+              <input class="nav-item" data-action="input" id="fLandmark" type="text" maxlength="60" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="fMob" id="lblMob"></label>
+              <input class="nav-item" data-action="input" id="fMob" type="tel" maxlength="10" autocomplete="off">
+              <div class="err" id="eMob"></div>
+            </div>
+            <button class="place-btn nav-item" id="placeBtn" data-action="place-order"></button>
+          </div>
+        </div>
+
+        <!-- C2: the vertical pipeline tracker -->
+        <div id="chkTracker" hidden>
+          <div class="tracker">
+            <div class="order-id">
+              <span class="oid-row"><span id="orderIdLabel"></span>: <b id="orderId"></b></span>
+              <span class="oid-row" id="codNote"></span>
+            </div>
+            <ul class="pipe" id="pipe">
+              <li id="step1"><span class="step-main"></span><span class="sub"></span></li>
+              <li id="step2"><span class="step-main"></span><span class="sub"></span></li>
+              <li id="step3"><span class="step-main"></span><span class="sub"></span></li>
+            </ul>
+            <div class="trk-actions">
+              <span class="home-btn nav-item" id="backHomeBtn" data-action="back-home"></span>
+              <span class="shop-again nav-item" id="shopAgainBtn" data-action="shop-again"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div id="langToast"></div>
+    </div><!-- /#screen -->
+
+    <div class="softkeys">
+      <span id="sk1"></span>
+      <span id="sk2"></span>
+      <span id="sk3"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==================================================================
+   MEESHO LITE v2 — TRILINGUAL SPATIAL-NAV ENGINE
+   Keys: Arrows = move · Enter = select · '*' = cycle language
+   ================================================================== */
+(function () {
+  "use strict";
+
+  /* ---------------- 1. LANGUAGE PACKS (zero-English UI) ---------------- */
+  const LANGS = ["hi", "bho", "ta"];
+
+  const L = {
+    hi: {
+      htmlLang: "hi",
+      langName: "\u0939\u093F\u0902\u0926\u0940",                                             /* हिंदी */
+      stageTitle: "\u092E\u0940\u0936\u094B \u0932\u093E\u0907\u091F \u00B7 \u0915\u0940\u092A\u0948\u0921 \u092B\u093C\u094B\u0928 \u0921\u0947\u092E\u094B",
+      brand: "\u092E\u0940\u0936\u094B \u0932\u093E\u0907\u091F",
+      search: "\uD83D\uDD0D \u0916\u094B\u091C\u0947\u0902\u2026",
+      searchAlert: "\u0916\u094B\u091C \u0938\u0941\u0935\u093F\u0927\u093E \u091C\u0932\u094D\u0926 \u0906 \u0930\u0939\u0940 \u0939\u0948!",
+      catLabel: "\u0936\u094D\u0930\u0947\u0923\u093F\u092F\u093E\u0901 (\u25C0\u25B6 \u0915\u0941\u0902\u091C\u0940)",
+      allProducts: "\u0938\u092D\u0940 \u0909\u0924\u094D\u092A\u093E\u0926",
+      cats: { saree: "\u0938\u093E\u0921\u093C\u0940", kurta: "\u0915\u0941\u0930\u094D\u0924\u093E", kids: "\u092C\u091A\u094D\u091A\u0947", home: "\u0918\u0930" },
+      cod: "\u0921\u093F\u0932\u0940\u0935\u0930\u0940 \u092A\u0930 \u0928\u0915\u0926",
+      productBrand: "\u0909\u0924\u094D\u092A\u093E\u0926",
+      back: "\u25C0 \u0935\u093E\u092A\u0938",
+      freeDelivery: "\u092E\u0941\u092B\u093C\u094D\u0924 \u0921\u093F\u0932\u0940\u0935\u0930\u0940",
+      sizeLabel: "\u0938\u093E\u0907\u091C\u093C \u091A\u0941\u0928\u0947\u0902 (\u0907\u0902\u091A)",
+      buy: "\u0905\u092D\u0940 \u0916\u0930\u0940\u0926\u0947\u0902",
+      buySub: "\u0921\u093F\u0932\u0940\u0935\u0930\u0940 \u092A\u0930 \u0928\u0915\u0926 \u092D\u0941\u0917\u0924\u093E\u0928",
+      chkHeading: "\u0911\u0930\u094D\u0921\u0930 \u0915\u0930\u0947\u0902",
+      trkHeading: "\u0911\u0930\u094D\u0921\u0930 \u0915\u0940 \u0938\u094D\u0925\u093F\u0924\u093F",
+      lblName: "\u092A\u0942\u0930\u093E \u0928\u093E\u092E",
+      lblVillage: "\u0917\u093E\u0902\u0935/\u0915\u0938\u094D\u092C\u0947 \u0915\u093E \u0928\u093E\u092E \u0914\u0930 \u092A\u093F\u0928\u0915\u094B\u0921",
+      lblLandmark: "\u0918\u0930 \u0915\u093E \u092A\u0924\u093E / \u092E\u0940\u0932 \u0915\u093E \u092A\u0924\u094D\u0925\u0930 / \u092A\u093E\u0938 \u0915\u0940 \u0928\u093F\u0936\u093E\u0928\u0940 (\u0935\u0948\u0915\u0932\u094D\u092A\u093F\u0915)",
+      lblMob: "\u092E\u094B\u092C\u093E\u0907\u0932 \u0928\u0902\u092C\u0930",
+      eName: "\u0915\u0943\u092A\u092F\u093E \u0928\u093E\u092E \u0932\u093F\u0916\u0947\u0902",
+      eVillage: "\u0917\u093E\u0902\u0935 \u0914\u0930 \u092A\u093F\u0928\u0915\u094B\u0921 \u0932\u093F\u0916\u0947\u0902",
+      eMob: "10 \u0905\u0902\u0915\u094B\u0902 \u0915\u093E \u0928\u0902\u092C\u0930 \u0932\u093F\u0916\u0947\u0902",
+      placeOrder: "\u0911\u0930\u094D\u0921\u0930 \u092A\u0915\u094D\u0915\u093E \u0915\u0930\u0947\u0902 \u2713",
+      orderIdLabel: "\u0911\u0930\u094D\u0921\u0930 \u0915\u094D\u0930\u092E\u093E\u0902\u0915",
+      codNote: "\u092A\u0948\u0938\u0947 \u0921\u093F\u0932\u0940\u0935\u0930\u0940 \u092A\u0930 \u0926\u0947\u0902 \u2014 \u0905\u092D\u0940 \u0915\u0941\u091B \u0928\u0939\u0940\u0902 \u0926\u0947\u0928\u093E",
+      steps: [
+        ["\u0911\u0930\u094D\u0921\u0930 \u092A\u0915\u094D\u0915\u093E \u0939\u0941\u0906", "\u0906\u091C"],
+        ["\u0907\u0902\u0926\u094C\u0930 \u0938\u0947 \u0930\u0935\u093E\u0928\u093E", "2 \u0926\u093F\u0928 \u092E\u0947\u0902"],
+        ["\u092C\u0947\u0902\u0917\u0932\u0941\u0930\u0941 \u092E\u0947\u0902 \u0921\u093F\u0932\u0940\u0935\u0930\u0940 \u0915\u0947 \u0932\u093F\u090F \u0928\u093F\u0915\u0932\u093E", "4 \u0926\u093F\u0928 \u092E\u0947\u0902"]
+      ],
+      shopAgain: "\u0914\u0930 \u0916\u0930\u0940\u0926\u093E\u0930\u0940 \u0915\u0930\u0947\u0902 \u25B6",
+      backHome: "\u092E\u0941\u0916\u094D\u092F \u092E\u0947\u0928\u0942 \u092A\u0930 \u0935\u093E\u092A\u0938 \u091C\u093E\u090F\u0902 \u2302",
+      sk1: "\u25C0\u25B6\u25B2\u25BC \u091A\u0932\u0947\u0902",
+      sk2: "\u0913\u0915\u0947 = \u091A\u0941\u0928\u0947\u0902",
+      sk3: "* = \u092D\u093E\u0937\u093E",
+      langToast: "\u092D\u093E\u0937\u093E: \u0939\u093F\u0902\u0926\u0940"
+    },
+
+    bho: {
+      htmlLang: "bho",
+      langName: "\u092D\u094B\u091C\u092A\u0941\u0930\u0940",                                  /* भोजपुरी */
+      stageTitle: "\u092E\u0940\u0936\u094B \u0932\u093E\u0907\u091F \u00B7 \u0915\u0940\u092A\u0948\u0921 \u092B\u094B\u0928 \u0921\u0947\u092E\u094B",
+      brand: "\u092E\u0940\u0936\u094B \u0932\u093E\u0907\u091F",
+      search: "\uD83D\uDD0D \u0916\u094B\u091C\u0940\u0902\u2026",
+      searchAlert: "\u0916\u094B\u091C \u0938\u0941\u0935\u093F\u0927\u093E \u091C\u0932\u094D\u0926\u093F\u090F \u0906\u0935\u0924 \u092C\u093E!",
+      catLabel: "\u0915\u093F\u0938\u093F\u092E (\u25C0\u25B6 \u092C\u091F\u0928)",
+      allProducts: "\u0938\u0917\u0930\u0940 \u0938\u093E\u092E\u093E\u0928",
+      cats: { saree: "\u0938\u093E\u0921\u093C\u0940", kurta: "\u0915\u0941\u0930\u0924\u093E", kids: "\u0932\u0907\u0915\u093E", home: "\u0918\u0930" },
+      cod: "\u0921\u093F\u0932\u0940\u0935\u0930\u0940 \u092A\u0930 \u0928\u0917\u0926",
+      productBrand: "\u0938\u093E\u092E\u093E\u0928",
+      back: "\u25C0 \u092A\u093E\u091B\u0947",
+      freeDelivery: "\u092E\u0941\u092B\u0924 \u0921\u093F\u0932\u0940\u0935\u0930\u0940",
+      sizeLabel: "\u0938\u093E\u0907\u091C \u091A\u0941\u0928\u0940\u0902 (\u0907\u0902\u091A)",
+      buy: "\u0905\u092C\u0939\u0940\u0902 \u0915\u0940\u0928\u0940\u0902",
+      buySub: "\u0921\u093F\u0932\u0940\u0935\u0930\u0940 \u092A\u0930 \u0928\u0917\u0926 \u092A\u0948\u0938\u093E",
+      chkHeading: "\u0911\u0930\u094D\u0921\u0930 \u0915\u0930\u0940\u0902",
+      trkHeading: "\u0911\u0930\u094D\u0921\u0930 \u0915\u0947 \u0939\u093E\u0932",
+      lblName: "\u092A\u0942\u0930\u093E \u0928\u093E\u0902\u0935",
+      lblVillage: "\u0917\u093E\u0902\u0935/\u0915\u0938\u094D\u092C\u093E \u0906 \u092A\u093F\u0928\u0915\u094B\u0921",
+      lblLandmark: "\u0918\u0930 \u0915\u0947 \u092A\u0924\u093E / \u0932\u0917\u0947 \u0915\u0947 \u0928\u093F\u0938\u093E\u0928\u0940 (\u0935\u0948\u0915\u0932\u094D\u092A\u093F\u0915)",
+      lblMob: "\u092E\u094B\u092C\u093E\u0907\u0932 \u0928\u0902\u092C\u0930",
+      eName: "\u0928\u093E\u0902\u0935 \u0932\u093F\u0916\u0940\u0902",
+      eVillage: "\u0917\u093E\u0902\u0935 \u0906 \u092A\u093F\u0928\u0915\u094B\u0921 \u0932\u093F\u0916\u0940\u0902",
+      eMob: "10 \u0905\u0902\u0915 \u0915\u0947 \u0928\u0902\u092C\u0930 \u0932\u093F\u0916\u0940\u0902",
+      placeOrder: "\u0911\u0930\u094D\u0921\u0930 \u092A\u0915\u094D\u0915\u093E \u0915\u0930\u0940\u0902 \u2713",
+      orderIdLabel: "\u0911\u0930\u094D\u0921\u0930 \u0928\u0902\u092C\u0930",
+      codNote: "\u092A\u0948\u0938\u093E \u0921\u093F\u0932\u0940\u0935\u0930\u0940 \u092A\u0930 \u0926\u0940\u0902 \u2014 \u0905\u092D\u0940 \u0915\u0941\u091B \u0928\u093E \u0926\u0947\u0935\u0947 \u0915\u0947 \u092C\u093E",
+      steps: [
+        ["\u0911\u0930\u094D\u0921\u0930 \u092A\u0915\u094D\u0915\u093E \u092D\u0907\u0932", "\u0906\u091C\u0941"],
+        ["\u0907\u0902\u0926\u094C\u0930 \u0938\u0947 \u091A\u0932\u0932", "2 \u0926\u093F\u0928 \u092E\u0947\u0902"],
+        ["\u092C\u0947\u0902\u0917\u0932\u0941\u0930\u0941 \u092E\u0947\u0902 \u0921\u093F\u0932\u0940\u0935\u0930\u0940 \u0916\u093E\u0924\u093F\u0930 \u0928\u093F\u0915\u0932\u0932", "4 \u0926\u093F\u0928 \u092E\u0947\u0902"]
+      ],
+      shopAgain: "\u0905\u0909\u0930\u0940 \u0915\u0940\u0928\u0940\u0902 \u25B6",
+      backHome: "\u092E\u0941\u0916\u094D\u092F \u092E\u0947\u0928\u0942 \u092A\u0930 \u0935\u093E\u092A\u0938 \u091C\u093E\u0908\u0902 \u2302",
+      sk1: "\u25C0\u25B6\u25B2\u25BC \u091A\u0932\u0940\u0902",
+      sk2: "\u0913\u0915\u0947 = \u091A\u0941\u0928\u0940\u0902",
+      sk3: "* = \u092D\u093E\u0937\u093E",
+      langToast: "\u092D\u093E\u0937\u093E: \u092D\u094B\u091C\u092A\u0941\u0930\u0940"
+    },
+
+    ta: {
+      htmlLang: "ta",
+      langName: "\u0BA4\u0BAE\u0BBF\u0BB4\u0BCD",                                             /* தமிழ் */
+      stageTitle: "\u0BAE\u0BC0\u0BB7\u0BCB \u0BB2\u0BC8\u0B9F\u0BCD \u00B7 \u0B95\u0BC0\u0BAA\u0BCD\u0BAA\u0BC7\u0B9F\u0BCD \u0BAA\u0BCB\u0BA9\u0BCD \u0B9F\u0BC6\u0BAE\u0BCB",
+      brand: "\u0BAE\u0BC0\u0BB7\u0BCB \u0BB2\u0BC8\u0B9F\u0BCD",
+      search: "\uD83D\uDD0D \u0BA4\u0BC7\u0B9F\u0BC1\u0B99\u0BCD\u0B95\u0BB3\u0BCD\u2026",
+      searchAlert: "\u0BA4\u0BC7\u0B9F\u0BB2\u0BCD \u0BB5\u0B9A\u0BA4\u0BBF \u0BB5\u0BBF\u0BB0\u0BC8\u0BB5\u0BBF\u0BB2\u0BCD \u0BB5\u0BB0\u0BC1\u0B95\u0BBF\u0BB1\u0BA4\u0BC1!",
+      catLabel: "\u0BB5\u0B95\u0BC8\u0B95\u0BB3\u0BCD (\u25C0\u25B6 \u0BB5\u0BBF\u0B9A\u0BC8)",
+      allProducts: "\u0B85\u0BA9\u0BC8\u0BA4\u0BCD\u0BA4\u0BC1 \u0BAA\u0BCA\u0BB0\u0BC1\u0B9F\u0BCD\u0B95\u0BB3\u0BCD",
+      cats: { saree: "\u0BAA\u0BC1\u0B9F\u0BB5\u0BC8", kurta: "\u0B95\u0BC1\u0BB0\u0BCD\u0BA4\u0BBE", kids: "\u0B95\u0BC1\u0BB4\u0BA8\u0BCD\u0BA4\u0BC8\u0B95\u0BB3\u0BCD", home: "\u0BB5\u0BC0\u0B9F\u0BC1" },
+      cod: "\u0B9F\u0BC6\u0BB2\u0BBF\u0BB5\u0BB0\u0BBF\u0BAF\u0BBF\u0BB2\u0BCD \u0BAA\u0BA3\u0BAE\u0BCD",
+      productBrand: "\u0BAA\u0BCA\u0BB0\u0BC1\u0BB3\u0BCD",
+      back: "\u25C0 \u0BAA\u0BBF\u0BA9\u0BCD",
+      freeDelivery: "\u0B87\u0BB2\u0BB5\u0B9A \u0B9F\u0BC6\u0BB2\u0BBF\u0BB5\u0BB0\u0BBF",
+      sizeLabel: "\u0B85\u0BB3\u0BB5\u0BC1 \u0BA4\u0BC7\u0BB0\u0BCD\u0BB5\u0BC1 (\u0B87\u0BA9\u0BCD\u0B9A\u0BCD)",
+      buy: "\u0B87\u0BAA\u0BCD\u0BAA\u0BCB\u0BA4\u0BC1 \u0BB5\u0BBE\u0B99\u0BCD\u0B95\u0BC1",
+      buySub: "\u0B9F\u0BC6\u0BB2\u0BBF\u0BB5\u0BB0\u0BBF\u0BAF\u0BBF\u0BB2\u0BCD \u0BAA\u0BA3\u0BAE\u0BCD \u0B9A\u0BC6\u0BB2\u0BC1\u0BA4\u0BCD\u0BA4\u0BC1\u0B99\u0BCD\u0B95\u0BB3\u0BCD",
+      chkHeading: "\u0B86\u0BB0\u0BCD\u0B9F\u0BB0\u0BCD \u0B9A\u0BC6\u0BAF\u0BCD",
+      trkHeading: "\u0B86\u0BB0\u0BCD\u0B9F\u0BB0\u0BCD \u0BA8\u0BBF\u0BB2\u0BC8",
+      lblName: "\u0BAE\u0BC1\u0BB4\u0BC1 \u0BAA\u0BC6\u0BAF\u0BB0\u0BCD",
+      lblVillage: "\u0B95\u0BBF\u0BB0\u0BBE\u0BAE\u0BAE\u0BCD/\u0BA8\u0B95\u0BB0\u0BAE\u0BCD \u0BAE\u0BB1\u0BCD\u0BB1\u0BC1\u0BAE\u0BCD \u0BAA\u0BBF\u0BA9\u0BCD\u0B95\u0BCB\u0B9F\u0BC1",
+      lblLandmark: "\u0BB5\u0BC0\u0B9F\u0BCD\u0B9F\u0BC1 \u0BAE\u0BC1\u0B95\u0BB5\u0BB0\u0BBF / \u0B85\u0BB0\u0BC1\u0B95\u0BBF\u0BB2\u0BCD \u0B89\u0BB3\u0BCD\u0BB3 \u0B85\u0B9F\u0BC8\u0BAF\u0BBE\u0BB3\u0BAE\u0BCD (\u0BB5\u0BBF\u0BB0\u0BC1\u0BAA\u0BCD\u0BAA\u0BAE\u0BCD)",
+      lblMob: "\u0BAE\u0BCA\u0BAA\u0BC8\u0BB2\u0BCD \u0B8E\u0BA3\u0BCD",
+      eName: "\u0BAA\u0BC6\u0BAF\u0BB0\u0BC8 \u0B8E\u0BB4\u0BC1\u0BA4\u0BC1\u0B99\u0BCD\u0B95\u0BB3\u0BCD",
+      eVillage: "\u0B95\u0BBF\u0BB0\u0BBE\u0BAE\u0BAE\u0BC1\u0BAE\u0BCD \u0BAA\u0BBF\u0BA9\u0BCD\u0B95\u0BCB\u0B9F\u0BC1\u0BAE\u0BCD \u0B8E\u0BB4\u0BC1\u0BA4\u0BC1\u0B99\u0BCD\u0B95\u0BB3\u0BCD",
+      eMob: "10 \u0B87\u0BB2\u0B95\u0BCD\u0B95 \u0B8E\u0BA3\u0BCD \u0B8E\u0BB4\u0BC1\u0BA4\u0BC1\u0B99\u0BCD\u0B95\u0BB3\u0BCD",
+      placeOrder: "\u0B86\u0BB0\u0BCD\u0B9F\u0BB0\u0BC8 \u0B89\u0BB1\u0BC1\u0BA4\u0BBF \u0B9A\u0BC6\u0BAF\u0BCD \u2713",
+      orderIdLabel: "\u0B86\u0BB0\u0BCD\u0B9F\u0BB0\u0BCD \u0B8E\u0BA3\u0BCD",
+      codNote: "\u0B9F\u0BC6\u0BB2\u0BBF\u0BB5\u0BB0\u0BBF\u0BAF\u0BBF\u0BB2\u0BCD \u0BAA\u0BA3\u0BAE\u0BCD \u0B95\u0BCA\u0B9F\u0BC1\u0B99\u0BCD\u0B95\u0BB3\u0BCD \u2014 \u0B87\u0BAA\u0BCD\u0BAA\u0BCB\u0BA4\u0BC1 \u0B8E\u0BA4\u0BC1\u0BB5\u0BC1\u0BAE\u0BCD \u0BB5\u0BC7\u0BA3\u0BCD\u0B9F\u0BBE\u0BAE\u0BCD",
+      steps: [
+        ["\u0B86\u0BB0\u0BCD\u0B9F\u0BB0\u0BCD \u0B89\u0BB1\u0BC1\u0BA4\u0BBF\u0BAF\u0BBE\u0BA9\u0BA4\u0BC1", "\u0B87\u0BA9\u0BCD\u0BB1\u0BC1"],
+        ["\u0B87\u0BA8\u0BCD\u0BA4\u0BC2\u0BB0\u0BBF\u0BB2\u0BBF\u0BB0\u0BC1\u0BA8\u0BCD\u0BA4\u0BC1 \u0B85\u0BA9\u0BC1\u0BAA\u0BCD\u0BAA\u0BAA\u0BCD\u0BAA\u0B9F\u0BCD\u0B9F\u0BA4\u0BC1", "2 \u0BA8\u0BBE\u0B9F\u0BCD\u0B95\u0BB3\u0BBF\u0BB2\u0BCD"],
+        ["\u0BAA\u0BC6\u0B99\u0BCD\u0B95\u0BB3\u0BC2\u0BB0\u0BC1\u0BB5\u0BBF\u0BB2\u0BCD \u0B9F\u0BC6\u0BB2\u0BBF\u0BB5\u0BB0\u0BBF\u0B95\u0BCD\u0B95\u0BC1 \u0BAA\u0BC1\u0BB1\u0BAA\u0BCD\u0BAA\u0B9F\u0BCD\u0B9F\u0BA4\u0BC1", "4 \u0BA8\u0BBE\u0B9F\u0BCD\u0B95\u0BB3\u0BBF\u0BB2\u0BCD"]
+      ],
+      shopAgain: "\u0BAE\u0BC7\u0BB2\u0BC1\u0BAE\u0BCD \u0BB7\u0BBE\u0BAA\u0BCD\u0BAA\u0BBF\u0B99\u0BCD \u25B6",
+      backHome: "\u0BAE\u0BC1\u0BA4\u0BA9\u0BCD\u0BAE\u0BC8 \u0BAE\u0BC6\u0BA9\u0BC1\u0BB5\u0BC1\u0B95\u0BCD\u0B95\u0BC1\u0BA4\u0BCD \u0BA4\u0BBF\u0BB0\u0BC1\u0BAE\u0BCD\u0BAA\u0BC1 \u2302",
+      sk1: "\u25C0\u25B6\u25B2\u25BC \u0BA8\u0B95\u0BB0\u0BCD\u0BA4\u0BCD\u0BA4",
+      sk2: "\u0B9A\u0BB0\u0BBF = \u0BA4\u0BC7\u0BB0\u0BCD\u0BB5\u0BC1",
+      sk3: "* = \u0BAE\u0BCA\u0BB4\u0BBF",
+      langToast: "\u0BAE\u0BCA\u0BB4\u0BBF: \u0BA4\u0BAE\u0BBF\u0BB4\u0BCD"
+    }
+  };
+
+  /* ---------------- 2. PRODUCT CATALOG (CDN images + SVG fallback) ---------------- */
+  const IMG = (id, w, h) =>
+    "https://images.unsplash.com/" + id + "?w=" + w + "&h=" + h + "&fit=crop&q=55&auto=format";
+
+  const PRODUCTS = [
+    { id: 1, cat: "saree", img: "photo-1610030469983-98e550d6193c", hue: "#f7c6de",
+      price: 249, mrp: 599, rating: "4.1 \u2605",
+      names: { hi: "\u0938\u0942\u0924\u0940 \u091B\u092A\u093E\u0908 \u0938\u093E\u0921\u093C\u0940", bho: "\u0938\u0942\u0924\u0940 \u091B\u092A\u093E\u0908 \u0938\u093E\u0921\u093C\u0940", ta: "\u0BAA\u0BB0\u0BC1\u0BA4\u0BCD\u0BA4\u0BBF \u0B85\u0B9A\u0BCD\u0B9A\u0BC1 \u0BAA\u0BC1\u0B9F\u0BB5\u0BC8" } },
+    { id: 2, cat: "saree", img: "photo-1583391733956-3750e0ff4e8b", hue: "#dcc6f7",
+      price: 399, mrp: 999, rating: "4.3 \u2605",
+      names: { hi: "\u0930\u0947\u0936\u092E\u0940 \u091C\u093C\u0930\u0940 \u0938\u093E\u0921\u093C\u0940", bho: "\u0930\u0947\u0938\u092E\u0940 \u091C\u0930\u0940 \u0938\u093E\u0921\u093C\u0940", ta: "\u0BAA\u0B9F\u0BCD\u0B9F\u0BC1 \u0B9C\u0BB0\u0BBF \u0BAA\u0BC1\u0B9F\u0BB5\u0BC8" } },
+    { id: 3, cat: "kurta", img: "photo-1583744946564-b52ac1c389c8", hue: "#c6e5f7",
+      price: 299, mrp: 749, rating: "4.0 \u2605",
+      names: { hi: "\u0905\u0928\u093E\u0930\u0915\u0932\u0940 \u0915\u0941\u0930\u094D\u0924\u093E \u0938\u0947\u091F", bho: "\u0905\u0928\u093E\u0930\u0915\u0932\u0940 \u0915\u0941\u0930\u0924\u093E \u0938\u0947\u091F", ta: "\u0B85\u0BA9\u0BBE\u0BB0\u0BCD\u0B95\u0BB2\u0BBF \u0B95\u0BC1\u0BB0\u0BCD\u0BA4\u0BBE \u0B9A\u0BC6\u0B9F\u0BCD" } },
+    { id: 4, cat: "kurta", img: "photo-1597983073493-88cd35cf93b0", hue: "#d3f0c0",
+      price: 349, mrp: 799, rating: "3.9 \u2605",
+      names: { hi: "\u092A\u0941\u0930\u0941\u0937\u094B\u0902 \u0915\u093E \u0938\u0942\u0924\u0940 \u0915\u0941\u0930\u094D\u0924\u093E", bho: "\u092E\u0930\u0926 \u0915\u0947 \u0938\u0942\u0924\u0940 \u0915\u0941\u0930\u0924\u093E", ta: "\u0B86\u0BA3\u0BCD\u0B95\u0BB3\u0BCD \u0BAA\u0BB0\u0BC1\u0BA4\u0BCD\u0BA4\u0BBF \u0B95\u0BC1\u0BB0\u0BCD\u0BA4\u0BBE" } },
+    { id: 5, cat: "kids", img: "photo-1587654780291-39c9404d746b", hue: "#f7e7c0",
+      price: 199, mrp: 499, rating: "4.4 \u2605",
+      names: { hi: "\u0932\u0915\u0921\u093C\u0940 \u0915\u0947 \u0916\u093F\u0932\u094C\u0928\u0947 \u0938\u0947\u091F", bho: "\u0932\u0915\u0921\u093C\u0940 \u0915\u0947 \u0916\u0947\u0932\u094C\u0928\u093E \u0938\u0947\u091F", ta: "\u0BAE\u0BB0 \u0BAA\u0BCA\u0BAE\u0BCD\u0BAE\u0BC8 \u0B9A\u0BC6\u0B9F\u0BCD" } },
+    { id: 6, cat: "kids", img: "photo-1519238263530-99bdd11df2ea", hue: "#f7d0ef",
+      price: 149, mrp: 399, rating: "4.2 \u2605",
+      names: { hi: "\u092C\u091A\u094D\u091A\u094B\u0902 \u0915\u0940 \u091F\u0940-\u0936\u0930\u094D\u091F", bho: "\u0932\u0907\u0915\u0928 \u0915\u0947 \u091F\u0940-\u0936\u0930\u094D\u091F", ta: "\u0B95\u0BC1\u0BB4\u0BA8\u0BCD\u0BA4\u0BC8\u0B95\u0BB3\u0BCD \u0B9F\u0BBF-\u0BB7\u0BB0\u0BCD\u0B9F\u0BCD" } },
+    { id: 7, cat: "home", img: "photo-1505693416388-ac5ce068fe85", hue: "#c0f0e2",
+      price: 279, mrp: 699, rating: "4.0 \u2605",
+      names: { hi: "\u0921\u092C\u0932 \u092C\u0947\u0921\u0936\u0940\u091F \u0938\u0947\u091F", bho: "\u0921\u092C\u0932 \u092C\u0947\u0921\u0936\u0940\u091F \u0938\u0947\u091F", ta: "\u0B87\u0BB0\u0B9F\u0BCD\u0B9F\u0BC8 \u0BAA\u0B9F\u0BC1\u0B95\u0BCD\u0B95\u0BC8 \u0BB5\u0BBF\u0BB0\u0BBF\u0BAA\u0BCD\u0BAA\u0BC1" } },
+    { id: 8, cat: "home", img: "photo-1563861826100-9cb868fdbe1c", hue: "#ead9c2",
+      price: 189, mrp: 450, rating: "3.8 \u2605",
+      names: { hi: "\u0932\u0915\u0921\u093C\u0940 \u0915\u0940 \u0926\u0940\u0935\u093E\u0930 \u0918\u0921\u093C\u0940", bho: "\u0932\u0915\u0921\u093C\u0940 \u0915\u0947 \u0926\u0947\u0935\u093E\u0932 \u0918\u0921\u093C\u0940", ta: "\u0BAE\u0BB0 \u0B9A\u0BC1\u0BB5\u0BB0\u0BCD \u0B95\u0B9F\u0BBF\u0B95\u0BBE\u0BB0\u0BAE\u0BCD" } }
+  ];
+
+  /* SVG data-URI fallback: if a CDN image ever 404s, the card still
+     shows a clean tile with the product's first letter — never a broken icon. */
+  function fallbackSVG(text, hue) {
+    const svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180">' +
+      '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+      '<stop offset="0" stop-color="' + hue + '"/>' +
+      '<stop offset="1" stop-color="#ffffff"/></linearGradient></defs>' +
+      '<rect width="180" height="180" fill="url(#g)"/>' +
+      '<text x="90" y="104" font-size="52" font-family="sans-serif" ' +
+      'text-anchor="middle" fill="#7a5468">' + text + "</text></svg>";
+    return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+  }
+
+  /* ---------------- 3. GLOBAL STATE MANAGER ---------------- */
+  const state = {
+    lang: "hi",
+    view: "feed",            // 'feed' | 'pdp' | 'checkout'
+    checkoutMode: "form",    // 'form' | 'tracker'
+    activeCategory: null,
+    currentProduct: null,
+    selectedSize: "40",
+    focusEl: null,
+    memory: {}
+  };
+
+  const screen = document.getElementById("screen");
+  const views = {
+    feed:     document.getElementById("view-feed"),
+    pdp:      document.getElementById("view-pdp"),
+    checkout: document.getElementById("view-checkout")
+  };
+
+  function t(key) { return L[state.lang][key]; }
+
+  /* ---------------- 4. RENDERERS ---------------- */
+  function renderStaticText() {
+    const d = L[state.lang];
+    document.documentElement.lang = d.htmlLang;
+    document.getElementById("stageTitle").textContent = d.stageTitle;
+    document.getElementById("brandFeed").textContent  = d.brand;
+    document.getElementById("brandPdp").textContent   = d.productBrand;
+    document.getElementById("searchBox").textContent  = d.search;
+    document.getElementById("catLabel").textContent   = d.catLabel;
+    document.getElementById("backFeedBtn").textContent = d.back;
+    document.getElementById("backPdpBtn").textContent  = d.back;
+    document.getElementById("sizeLabel").textContent   = d.sizeLabel;
+    document.getElementById("buyBtn").innerHTML =
+      d.buy + "<small>" + d.buySub + "</small>";
+    document.getElementById("chkHeading").textContent =
+      state.checkoutMode === "tracker" ? d.trkHeading : d.chkHeading;
+    document.getElementById("lblName").textContent     = d.lblName;
+    document.getElementById("lblVillage").textContent  = d.lblVillage;
+    document.getElementById("lblLandmark").textContent = d.lblLandmark;
+    document.getElementById("lblMob").textContent      = d.lblMob;
+    document.getElementById("eName").textContent       = d.eName;
+    document.getElementById("eVillage").textContent    = d.eVillage;
+    document.getElementById("eMob").textContent        = d.eMob;
+    document.getElementById("placeBtn").textContent    = d.placeOrder;
+    document.getElementById("orderIdLabel").textContent = d.orderIdLabel;
+    document.getElementById("codNote").textContent      = d.codNote;
+    document.getElementById("shopAgainBtn").textContent = d.shopAgain;
+    document.getElementById("backHomeBtn").textContent  = d.backHome;
+    document.getElementById("sk1").textContent = d.sk1;
+    document.getElementById("sk2").textContent = d.sk2;
+    document.getElementById("sk3").textContent = d.sk3;
+
+    ["step1", "step2", "step3"].forEach((id, i) => {
+      const li = document.getElementById(id);
+      li.querySelector(".step-main").textContent = d.steps[i][0] + " ";
+      li.querySelector(".sub").textContent = d.steps[i][1];
+    });
+  }
+
+  function renderCategories() {
+    const ribbon = document.getElementById("catRibbon");
+    ribbon.innerHTML = "";
+    Object.keys(t("cats")).forEach(catId => {
+      const chip = document.createElement("span");
+      chip.className = "cat-chip nav-item" + (state.activeCategory === catId ? " active" : "");
+      chip.dataset.action = "category";
+      chip.dataset.cat = catId;
+      chip.textContent = t("cats")[catId];
+      ribbon.appendChild(chip);
+    });
+  }
+
+  function renderGrid() {
+    const grid  = document.getElementById("grid");
+    const label = document.getElementById("gridLabel");
+    grid.innerHTML = "";
+    const list = state.activeCategory
+      ? PRODUCTS.filter(p => p.cat === state.activeCategory)
+      : PRODUCTS;
+    label.textContent = state.activeCategory
+      ? t("cats")[state.activeCategory]
+      : t("allProducts");
+
+    list.forEach(p => {
+      const name = p.names[state.lang];
+      const card = document.createElement("article");
+      card.className = "card nav-item";
+      card.dataset.action = "product";
+      card.dataset.id = p.id;
+
+      const img = document.createElement("img");
+      img.className = "card-img";
+      img.width = 114; img.height = 78;
+      img.loading = "lazy";
+      img.alt = name;
+      img.src = IMG(p.img, 200, 140);
+      img.onerror = function () {
+        this.onerror = null;
+        this.src = fallbackSVG(name.charAt(0), p.hue);
+      };
+
+      const body = document.createElement("div");
+      body.className = "card-body";
+      body.innerHTML =
+        '<div class="card-title">' + name + "</div>" +
+        '<div class="card-price">\u20B9' + p.price + "</div>" +
+        '<span class="cod-badge">' + t("cod") + "</span>";
+
+      card.appendChild(img);
+      card.appendChild(body);
+      grid.appendChild(card);
+    });
+  }
+
+  function renderPDP(product) {
+    state.currentProduct = product;
+    const name = product.names[state.lang];
+    const img = document.getElementById("pdpImg");
+    img.alt = name;
+    img.src = IMG(product.img, 360, 360);
+    img.onerror = function () {
+      this.onerror = null;
+      this.src = fallbackSVG(name.charAt(0), product.hue);
+    };
+    document.getElementById("pdpTitle").textContent = name;
+    document.getElementById("pdpPrice").textContent = "\u20B9" + product.price;
+    document.getElementById("pdpMrp").textContent = "\u20B9" + product.mrp;
+    document.getElementById("pdpRating").textContent =
+      product.rating + " \u00B7 " + t("freeDelivery");
+    document.querySelectorAll("#sizeRow .size-box").forEach(b => {
+      b.classList.toggle("selected", b.dataset.size === state.selectedSize);
+    });
+  }
+
+  /* ---------------- 5. '*' LANGUAGE CYCLER (no state reset) ---------------- */
+  function focusSignature(el) {
+    if (!el) return null;
+    if (el.id) return { by: "id", v: el.id };
+    const a = el.dataset.action;
+    if (a === "product")  return { by: "product", v: el.dataset.id };
+    if (a === "category") return { by: "category", v: el.dataset.cat };
+    if (a === "size")     return { by: "size", v: el.dataset.size };
+    return null;
+  }
+
+  function findBySignature(sig) {
+    if (!sig) return null;
+    if (sig.by === "id")       return document.getElementById(sig.v);
+    if (sig.by === "product")  return views[state.view].querySelector('.card[data-id="' + sig.v + '"]');
+    if (sig.by === "category") return document.querySelector('.cat-chip[data-cat="' + sig.v + '"]');
+    if (sig.by === "size")     return document.querySelector('.size-box[data-size="' + sig.v + '"]');
+    return null;
+  }
+
+  function cycleLanguage() {
+    const sig = focusSignature(state.focusEl);
+    const keepScroll = screen.scrollTop;
+
+    state.lang = LANGS[(LANGS.indexOf(state.lang) + 1) % LANGS.length];
+
+    // re-render every localized string; views, filters, form values,
+    // pipeline progress and scroll position are all untouched
+    renderStaticText();
+    renderCategories();
+    renderGrid();
+    if (state.currentProduct) renderPDP(state.currentProduct);
+
+    screen.scrollTop = keepScroll;
+
+    const again = findBySignature(sig);
+    if (again && candidates().includes(again)) setFocus(again, false);
+    else setFocus(candidates()[0], false);
+
+    // toast confirmation (absolutely positioned: zero layout shift)
+    const toast = document.getElementById("langToast");
+    toast.textContent = t("langToast");
+    toast.classList.add("show");
+    clearTimeout(cycleLanguage._timer);
+    cycleLanguage._timer = setTimeout(() => toast.classList.remove("show"), 1200);
+  }
+
+  /* ---------------- 6. VIEW ROUTER ---------------- */
+  function showView(name) {
+    if (state.focusEl) state.memory[state.view] = focusSignature(state.focusEl);
+
+    Object.keys(views).forEach(k => { views[k].hidden = (k !== name); });
+    state.view = name;
+    screen.scrollTop = 0;
+
+    const remembered = findBySignature(state.memory[name]);
+    const cands = candidates();
+    if (remembered && cands.includes(remembered)) setFocus(remembered);
+    else setFocus(cands[0]);
+  }
+
+  /* ---------------- 7. SPATIAL FOCUS ENGINE ---------------- */
+  function candidates() {
+    const active = views[state.view];
+    return Array.from(active.querySelectorAll(".nav-item"))
+      .filter(el => el.offsetParent !== null);
+  }
+
+  function setFocus(el, smooth) {
+    if (!el) return;
+    if (state.focusEl) state.focusEl.classList.remove("focused");
+    el.classList.add("focused");
+    state.focusEl = el;
+    el.focus({ preventScroll: true });
+    el.scrollIntoView({
+      block: "nearest",
+      inline: "nearest",
+      behavior: smooth === false ? "auto" : "smooth"
+    });
+  }
+
+  function center(rect) {
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  }
+
+  function move(dir) {
+    const cands = candidates();
+    if (cands.length === 0) return;
+
+    if (!state.focusEl || !cands.includes(state.focusEl)) {
+      setFocus(cands[0]);
+      return;
+    }
+
+    const from = center(state.focusEl.getBoundingClientRect());
+    let best = null;
+    let bestScore = Infinity;
+
+    for (const el of cands) {
+      if (el === state.focusEl) continue;
+      const c = center(el.getBoundingClientRect());
+      const dx = c.x - from.x;
+      const dy = c.y - from.y;
+      let primary, secondary;
+
+      if (dir === "up")         { if (dy > -4) continue; primary = -dy; secondary = Math.abs(dx); }
+      else if (dir === "down")  { if (dy <  4) continue; primary =  dy; secondary = Math.abs(dx); }
+      else if (dir === "left")  { if (dx > -4) continue; primary = -dx; secondary = Math.abs(dy); }
+      else                      { if (dx <  4) continue; primary =  dx; secondary = Math.abs(dy); }
+
+      const score = primary + secondary * 2.5;
+      if (score < bestScore) { bestScore = score; best = el; }
+    }
+
+    if (best) setFocus(best);
+  }
+
+  /* ---------------- 8. ACTION DISPATCH (Enter key) ---------------- */
+  function activate() {
+    const el = state.focusEl;
+    if (!el) return;
+    const action = el.dataset.action;
+
+    switch (action) {
+      case "search": {
+        // system alert, dynamically translated to the active language
+        window.alert(t("searchAlert"));
+        break;
+      }
+      case "category": {
+        const cat = el.dataset.cat;
+        state.activeCategory = (state.activeCategory === cat) ? null : cat;
+        renderCategories();
+        renderGrid();
+        const chip = document.querySelector('.cat-chip[data-cat="' + cat + '"]');
+        setFocus(chip || candidates()[0]);
+        break;
+      }
+      case "product": {
+        const product = PRODUCTS.find(p => p.id === Number(el.dataset.id));
+        if (product) { renderPDP(product); showView("pdp"); }
+        break;
+      }
+      case "size": {
+        state.selectedSize = el.dataset.size;
+        document.querySelectorAll("#sizeRow .size-box").forEach(b =>
+          b.classList.toggle("selected", b === el));
+        break;
+      }
+      case "buy": {
+        state.checkoutMode = "form";
+        document.getElementById("chkForm").hidden = false;
+        document.getElementById("chkTracker").hidden = true;
+        document.getElementById("chkHeading").textContent = t("chkHeading");
+        showView("checkout");
+        break;
+      }
+      case "back-feed":   showView("feed"); break;
+      case "back-pdp":    showView("pdp");  break;
+      case "input":       break; /* real focus already set; user types */
+      case "place-order": placeOrder(); break;
+      case "back-home": {
+        // full, safe reset: wipe every input, clear validation errors,
+        // drop the category filter and focus memory, rearm the checkout
+        // form, then route cleanly back to the marketplace feed
+        ["fName", "fVillage", "fLandmark", "fMob"].forEach(id => {
+          document.getElementById(id).value = "";
+        });
+        ["eName", "eVillage", "eMob"].forEach(id => {
+          document.getElementById(id).classList.remove("show");
+        });
+        state.checkoutMode = "form";
+        state.activeCategory = null;
+        state.currentProduct = null;
+        state.memory = {};
+        document.getElementById("chkForm").hidden = false;
+        document.getElementById("chkTracker").hidden = true;
+        document.getElementById("chkHeading").textContent = t("chkHeading");
+        renderCategories();
+        renderGrid();
+        showView("feed");
+        break;
+      }
+      case "shop-again": {
+        ["fName", "fVillage", "fLandmark", "fMob"].forEach(id => {
+          document.getElementById(id).value = "";
+        });
+        state.checkoutMode = "form";
+        state.memory = {};
+        showView("feed");
+        break;
+      }
+    }
+  }
+
+  /* ---------------- 9. CHECKOUT LOGIC ---------------- */
+  function placeOrder() {
+    const name    = document.getElementById("fName").value.trim();
+    const village = document.getElementById("fVillage").value.trim();
+    const mob     = document.getElementById("fMob").value.trim();
+    /* fLandmark is intentionally optional — deep-rural addresses may not have one */
+
+    const eName    = document.getElementById("eName");
+    const eVillage = document.getElementById("eVillage");
+    const eMob     = document.getElementById("eMob");
+    eName.classList.remove("show");
+    eVillage.classList.remove("show");
+    eMob.classList.remove("show");
+
+    if (!name)    { eName.classList.add("show");    setFocus(document.getElementById("fName"));    return; }
+    if (!village) { eVillage.classList.add("show"); setFocus(document.getElementById("fVillage")); return; }
+    if (!/^\d{10}$/.test(mob)) { eMob.classList.add("show"); setFocus(document.getElementById("fMob")); return; }
+
+    state.checkoutMode = "tracker";
+    document.getElementById("chkForm").hidden = true;
+    document.getElementById("chkTracker").hidden = false;
+    document.getElementById("chkHeading").textContent = t("trkHeading");
+    document.getElementById("orderId").textContent =
+      String(40000000 + Math.floor(Math.random() * 59999999)); // digits only: script-neutral
+
+    const steps = ["step1", "step2", "step3"].map(id => document.getElementById(id));
+    steps.forEach(s => s.classList.remove("done"));
+    steps[0].classList.add("done");
+    setTimeout(() => steps[1].classList.add("done"), 1200);
+    setTimeout(() => steps[2].classList.add("done"), 2400);
+
+    /* Focus/scroll recovery: pin the viewport to the top FIRST so the
+       Order ID and pipeline are in view, THEN anchor focus onto the new
+       back-to-home node with instant (non-smooth) positioning. The whole
+       tracker fits inside the 320px frame, so scrollIntoView(nearest)
+       performs no extra scroll and nothing gets pushed out of sight. */
+    screen.scrollTop = 0;
+    setFocus(document.getElementById("backHomeBtn"), false);
+  }
+
+  /* ---------------- 10. INPUT LISTENERS ---------------- */
+  document.addEventListener("keydown", function (e) {
+    const key = e.key;
+
+    // '*' = hardware language softkey (global interceptor)
+    if (key === "*") {
+      e.preventDefault();
+      cycleLanguage();
+      return;
+    }
+
+    const inInput = document.activeElement &&
+                    document.activeElement.tagName === "INPUT";
+
+    if (key === "Enter") {
+      e.preventDefault();
+      activate();
+      return;
+    }
+
+    if (key !== "ArrowUp" && key !== "ArrowDown" &&
+        key !== "ArrowLeft" && key !== "ArrowRight") return;
+
+    // inside a text input, Left/Right move the caret, not the focus
+    if (inInput && (key === "ArrowLeft" || key === "ArrowRight")) return;
+
+    e.preventDefault();
+    move(key.replace("Arrow", "").toLowerCase());
+  });
+
+  // Desktop-judge convenience only: a click behaves like navigate + Enter.
+  screen.addEventListener("click", function (e) {
+    const target = e.target.closest(".nav-item");
+    if (!target) return;
+    setFocus(target);
+    activate();
+  });
+
+  /* ---------------- 11. BOOT ---------------- */
+  function applyTabindex() {
+    document.querySelectorAll(".nav-item").forEach(el => {
+      if (!el.hasAttribute("tabindex") && el.tagName !== "INPUT") {
+        el.setAttribute("tabindex", "-1");
+      }
+    });
+  }
+
+  function init() {
+    renderStaticText();
+    renderCategories();
+    renderGrid();
+    new MutationObserver(applyTabindex).observe(screen, { childList: true, subtree: true });
+    applyTabindex();
+    setFocus(candidates()[0]);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
